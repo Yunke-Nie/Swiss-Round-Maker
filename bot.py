@@ -4,8 +4,10 @@ import random
 import asyncio
 import pandas as pd
 import re
+import os
+from dotenv import load_dotenv
 
-TOKEN = 'MTE2MzU4MzE0MDg0MTkxODQ2NQ.GFBI0F.nmtTI9Jgit566vGn1R-c92ROB5zMNMt0OdBSkw'
+TOKEN = 'MTE2MzU4MzE0MDg0MTkxODQ2NQ.GAXVQ9.jNdMwmE5jvovq9l2iQyZdL5qYJ7Og82Tt3p1tI'
 
 intents = discord.Intents.default()
 intents.reactions = True  # Enable reaction events
@@ -124,12 +126,14 @@ async def pair(ctx):
 
         if match[1] != 'bye':
             match_message = await ctx.send(f'Room {counter}: {member1.mention} vs {member2.mention}')
+            print(f'Room {counter}: {member1.mention} vs {member2.mention}')
             await match_message.add_reaction('🇱')  # L for player A win
-            await match_message.add_reaction('🇷')  # R for player B win
             await match_message.add_reaction('🇩')  # D for players drew
+            await match_message.add_reaction('🇷')  # R for player B win
         else:
             await ctx.send(f'{member1.mention} has a bye this round.')
-            player_data.loc[player_data['Player Name'] == member1.name, 'Number of Draws'] += 1
+            print(f'{member1.mention} has a bye this round.')
+            player_data.loc[player_data['Player Name'] == member1.name, 'Number of Wins'] += 1
 
         counter += 1
 
@@ -246,11 +250,11 @@ def update_player_data():
         player_data.loc[player_data['Player Name'] == player, 'WinRate'] = win_rate
 
         # Calculate tiebreaker score and update the 'Tiebreaker' column
-        tiebreaker = (3 * player_wins + player_draws) * 1000000
+        tiebreaker = (3 * player_wins + player_draws) * 100000000
 
         if opponent_win_rates:
             avg_opponent_win_rate = sum(opponent_win_rates) / len(opponent_win_rates)
-            tiebreaker += round(avg_opponent_win_rate * 1000000, 3)
+            tiebreaker += round(avg_opponent_win_rate * 10000000, 3)
 
         player_data.loc[player_data['Player Name'] == player, 'Tiebreaker'] = tiebreaker
 
@@ -283,6 +287,13 @@ async def standings(ctx):
 
     # Send the standings message to the Discord channel
     await ctx.send(standings_message)
-    
+
+# TODO: add player
+
+# TODO: drop player
+
+# TODO: Timer    
+
+# TODO: Rewind?
 
 bot.run(TOKEN)
