@@ -6,8 +6,9 @@ import pandas as pd
 import re
 import os
 from dotenv import load_dotenv
+load_dotenv()
 
-TOKEN = 'MTE2MzU4MzE0MDg0MTkxODQ2NQ.GAXVQ9.jNdMwmE5jvovq9l2iQyZdL5qYJ7Og82Tt3p1tI'
+TOKEN = os.getenv('DISCORD_TOKEN')
 
 intents = discord.Intents.default()
 intents.reactions = True  # Enable reaction events
@@ -49,7 +50,7 @@ async def start_tournament(ctx):
     num_duelists = len(duelists)
 
     if num_duelists < 4:
-        await ctx.send("Not enough players to start the tournament. Need at least 4.")
+        await ctx.send("目前已有" + str(num_duelists)  + "报名，群赛将准时开始")
         return
 
     if num_duelists <= 8:
@@ -288,9 +289,54 @@ async def standings(ctx):
     # Send the standings message to the Discord channel
     await ctx.send(standings_message)
 
-# TODO: add player
+@bot.command(name='add')
+@commands.has_role('tournament organizer')
+async def add_players(ctx):
+    global player_data
 
-# TODO: drop player
+    role = discord.utils.get(ctx.guild.roles, name="tournament duelist")
+    duelists = [member for member in ctx.guild.members if role in member.roles]
+
+    # Check if any new players need to be added
+    new_players = [member for member in duelists if member.name not in player_data['Player Name'].tolist()]
+    
+    if not new_players:
+        await ctx.send("No new players to add.")
+        return
+
+    # Add new players to the player_data DataFrame
+    for member in new_players:
+        player_data = player_data.append({'Player Name': member.name,
+                                          'Score': 0,
+                                          'Number of Wins': 0,
+                                          'Number of Draws': 0,
+                                          'Number of Losses': 0,
+                                          'Tiebreaker': 0,
+                                          'Opponents': [],
+                                          'WinRate': 0}, ignore_index=True)
+
+    await ctx.send(f"Added {len(new_players)} new players to the tournament.")
+
+@bot.command(name='drop')
+@commands.has_role('tournament organizer')
+async def drop_players(ctx):
+    global player_data
+
+    role = discord.utils.get(ctx.guild.roles, name="tournament duelist")
+    duelists = [member for member in ctx.guild.members if role in member.roles]
+
+    # Check if any players need to be dropped
+    players_to_drop = [player for player in player_data['Player Name'].tolist() if player not in [member.name for member in duelists]]
+    
+    if not players_to_drop:
+        await ctx.send("No players to drop.")
+        return
+
+    # Exclude dropped players from future rounds
+    global byes
+    byes = byes.difference(set(players_to_drop))
+
+    await ctx.send(f"Dropped {len(players_to_drop)} players from the tournament.")
 
 # TODO: Timer    
 
